@@ -1,0 +1,12 @@
+# .gitignore file for https://github.com/StevenWard94/LearningHaskell
+
+# ignore "dotfiles" in the repository's top-level directory (e.g. '.exrc' or '.ghci')
+.*
+#### EXCEPTIONS ####
+!.*/
+!.gitignore
+
+# quasi-personal directories I generally have git ignore
+.tmp/
+.notes/
+.local/

@@ -1,5 +1,0 @@
--- | A GHCi config file in the main directory for Haskell source
--- path: ~/lib/LearningHaskell.d/.ghci
--- Steven Ward <stevenward94@gmail.com ~ https://github.com/StevenWard94/LearningHaskell>
-
-:set prompt "\ESC[1;37m%s\n\ESC[1;37mλ> \ESC[m"
