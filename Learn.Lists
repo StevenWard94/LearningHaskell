@@ -1,0 +1,23 @@
+{- | A Haskell script for messing around with list contructs
+ - File:          Learn.Lists
+ - Author:        Steven Ward <stevenward94@gmail.com>
+ - URL:           https://github.com/StevenWard94/LearningHaskell
+ - Last Change:   2016 June 3
+ -}
+
+factorial' :: Integral a => a -> a
+factorial' x
+    | x <= 1 = 1
+    | otherwise = x * factorial' (x - 1)
+
+factList :: Integral a => [a] -> [a]
+factlist' xs = case xs of [] -> error "No factorials for empty list"
+                          xs -> [ factorial' n | n <- xs ]
+
+prodComb :: Num a => [a] -> [a] -> [a]
+prodComb :: (Num a, Num b) => [a] -> [b] -> [a]
+prodComb :: (Num a, Num b) => [a] -> [b] -> [b]
+prodComb xs ys
+    | xs == [] = error "Lists cannot be empty"
+    | ys == [] = error "Lists cannot be empty"
+    | otherwise = [ x * y | x <- xs, y <- ys ]
