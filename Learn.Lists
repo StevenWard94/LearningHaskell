@@ -18,6 +18,6 @@ prodComb :: Num a => [a] -> [a] -> [a]
 prodComb :: (Num a, Num b) => [a] -> [b] -> [a]
 prodComb :: (Num a, Num b) => [a] -> [b] -> [b]
 prodComb xs ys
-    | xs == [] = error "Lists cannot be empty"
-    | ys == [] = error "Lists cannot be empty"
+    | null xs = error "Lists cannot be empty"
+    | null ys = error "Lists cannot be empty"
     | otherwise = [ x * y | x <- xs, y <- ys ]
