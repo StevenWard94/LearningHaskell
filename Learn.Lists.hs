@@ -2,25 +2,25 @@
  - File:          Learn.Lists
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 06
+ - Last Change:   2016 June 07
  -}
+
+import Data.List (nub)
 
 factorial' :: Integral a => a -> a
 factorial' x
     | x <= 1 = 1
     | otherwise = x * factorial' (x - 1)
 
-factList :: Integral a => [a] -> [a]
-factlist' xs = case xs of [] -> error "No factorials for empty list"
+factList' :: Integral a => [a] -> [a]
+factList' xs = case xs of [] -> error "No factorials for empty list"
                           xs -> [ factorial' n | n <- xs ]
 
-prodComb :: Num a => [a] -> [a] -> [a]
-prodComb :: (Num a, Num b) => [a] -> [b] -> [a]
-prodComb :: (Num a, Num b) => [a] -> [b] -> [b]
+prodComb :: (Num a) => [a] -> [a] -> [a]
 prodComb xs ys
     | null xs = error "Lists cannot be empty"
     | null ys = error "Lists cannot be empty"
-    | otherwise = [ x * y | x <- xs, y <- ys ]
+    | otherwise = quicksort nub [ x * y | x <- xs, y <- ys ]
 
 maximum' :: Ord a => [a] -> a
 maximum' [] = error "cannot get maximum of empty list"
@@ -48,7 +48,7 @@ take' n (x:xs) = x : take' (n - 1) xs
 
 flip' :: [a] -> [a]
 flip' [] = []
-flip' (x:xs) = reverse' xs ++ [x]
+flip' (x:xs) = flip' xs ++ [x]
 
 repeat' :: a -> [a]
 repeat' x = x:repeat' x
