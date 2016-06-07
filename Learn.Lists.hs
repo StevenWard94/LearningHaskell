@@ -1,5 +1,5 @@
 {- | A Haskell script for messing around with list contructs
- - File:          Learn.Lists
+ - Module:        Learn.Lists
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
  - Last Change:   2016 June 07
