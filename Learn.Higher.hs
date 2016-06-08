@@ -20,3 +20,6 @@ xflip' f = g
 flip' :: (a -> b -> c) -> b -> a -> c
 flip' f y x = f x y
 
+map' :: (a -> b) -> [a] -> [b]
+map' _ [] = []
+map' f (x:xs) = f x : map' f xs
