@@ -2,7 +2,7 @@
  - Module:          Learn.Higher
  - Author:          Steven Ward <stevenward94@gmail.com>
  - URL:             https://github.com/StevenWard94/LearningHaskell
- - Last Change:     2016 June 07
+ - Last Change:     2016 June 08
  -}
 
 applyTwice :: (a -> a) -> a -> a
@@ -67,4 +67,10 @@ flips' :: (a -> b -> c) -> b -> a -> c
 flips' f = \x y -> f y x
 
 sum' :: (Num a) => [a] -> a
-sum' xs = foldl (\acc x -> acc + x) 0 xs
+sum' = foldl (+) 0
+
+elem' :: (Eq a) => a -> [a] -> Bool
+elem' y ys = foldl (\acc x -> if x == y then True else acc) False ys
+
+map' :: (a -> b) -> [a] -> [b]
+map' f xs = foldr (\x acc -> f x : acc) [] xs
