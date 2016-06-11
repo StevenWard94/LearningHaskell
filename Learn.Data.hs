@@ -5,8 +5,11 @@
  - Last Change:   2016 June 09
  -}
 
-import qualified Data.List as DL
+import Data.List
 import qualified Data.Map as DM
+import qualified Data.Char as DC
 
 numUniques :: (Eq a) => [a] -> Int
 numUniques = length . DL.nub
+
+
