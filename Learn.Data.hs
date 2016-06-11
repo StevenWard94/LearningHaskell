@@ -2,7 +2,7 @@
  - Module:        Learn.Data
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 09
+ - Last Change:   2016 June 11
  -}
 
 import Data.List
