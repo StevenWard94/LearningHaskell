@@ -2,7 +2,7 @@
  - Module:        Human
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 12
+ - Last Change:   2016 June 13
  -}
 
 data Human = Human String String Int Float String String deriving (Show)
@@ -38,3 +38,6 @@ data Car = Car {company :: !String, model :: !String, year :: !Int} deriving (Sh
 
 buildCar :: String -> String -> Int -> Car
 buildCar co mo yr = Car {company=co, model=mo, year=yr}
+
+data Day = Monday | Tuesday | Wednesday | Thursday | Friday | Saturday | Sunday
+  deriving (Eq, Ord, Show, Read, Bounded, Enum)
