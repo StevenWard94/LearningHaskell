@@ -2,7 +2,7 @@
  - Module:        Lab.One
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 20
+ - Last Change:   2016 June 21
  -}
 
 module Lab.One
