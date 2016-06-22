@@ -1,5 +1,8 @@
 # .gitignore file for https://github.com/StevenWard94/LearningHaskell
 
+# the 'etc/' directory could quickly become pretty large and is all available elsewhere...
+etc/
+
 # ignore "dotfiles" in the repository's top-level directory (e.g. '.exrc' or '.ghci')
 .*
 #### EXCEPTIONS ####
