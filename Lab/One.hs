@@ -45,3 +45,9 @@ hyp _ 0 = error "values cannot be 0 - second value provided was 0"
 hyp x y = if abs x < abs y
              then hyp y x
              else square x + square y
+
+prop_triple :: (Real a) => a -> a -> Bool
+prop_triple x y
+    | r < s     = prop_triple s r
+    | otherwise = isTriple (leg1 r s) (leg2 r s) (hyp r s)
+    where (r, s) = (abs x, abs y)
