@@ -1,7 +1,8 @@
 # .gitignore file for https://github.com/StevenWard94/LearningHaskell
 
 # the 'etc/' directory could quickly become pretty large and is all available elsewhere...
-etc/
+# NOTE: this entry leaves an empty 'etc/' directory in the remote repository
+etc/**
 
 # ignore "dotfiles" in the repository's top-level directory (e.g. '.exrc' or '.ghci')
 .*
