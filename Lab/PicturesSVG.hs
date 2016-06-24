@@ -143,3 +143,81 @@ flatten (x,y) (Over pic1 pic2)   = flatten (x,y) pic2 ++ flatten (x,y) pic1
 flatten (x,y) (FlipH pic)        = map flipFH $ flatten (x,y) pic
 flatten (x,y) (FlipV pic)        = map flipFV $ flatten (x,y) pic
 flatten (x,y) (Invert pic)       = map flipNeg $ flatten (x,y) pic
+
+-- flip one of the flags for transforms / 'filter'
+
+flipFH (Basic img (x,y) f@(Filter {fH=boo}))   = Basic img (x,y) f{fH = not boo}
+flipFV (Basic img (x,y) f@(Filter {fV=boo}))   = Basic img (x,y) f{fV = not boo}
+flipNeg (Basic img (x,y) f@(Filter {neg=boo})) = Basic img (x,y) f{neg = not boo}
+
+--
+-- Convert a 'Basic' picture to an SVG image, represented by a String
+--
+
+convert :: Basic -> String
+
+convert (Basic (Image (Name name) (width, height)) (x,y) (Filter fH fV neg))
+  = "\n  <image x=\"" ++ show x ++ "\" y=\"" ++ show y ++ "\" width=\"" ++ show width ++ "\" height=\"" ++
+    show height ++ "\" xlink:href=\"" ++ name ++ "\"" ++ flipPart ++ negPart ++ "/>\n"
+        where
+          flipPart
+              | fH && not fV = " transform=\"translate(0," ++ show (2*y + height) ++ ") scale(1,-1)\" "
+              | fV && not fH = " transform=\"translate(" ++ show (2*x + width) ++ ".0) scale(-1,1)\" "
+              | fV && fH = " transform=\"translare(" ++ show (2*x + width) ++ "," ++ show (2*y + height) ++ ") scale(-1,-1)\" "
+              | otherwise = ""
+          negPart
+              | neg = " filter=\"url(#negative)\""
+              | otherwise = ""
+
+-- Outputting a picture.
+-- The effect of this is to write the SVG code into a file whoe path is
+-- hardwired into the code. Could easily be modified so the file is an
+-- argument of the call and/or to call the browser to automatically update
+-- on output
+
+render :: Picture -> IO ()
+
+render pic =
+             let
+                 picList = flatten (0,0) pic
+                 svgString = concat (map convert picList)
+                 newFile = preamble ++ svgString ++ postamble
+             in
+               do
+                 outh <- openFile "svgOut.xml" WriteMode
+                 hPutStrLn outh newFile
+                 hClose outh
+
+-- Preamble and postamble: boilerplate XML
+
+preamble
+  = "<svg width=\"100%\" height=\"100%\" version=\"1.1\"\n" ++
+    "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n" ++
+    "<filter id=\"negative\">\n" ++
+    "<feColorMatrix type=\"matrix\"\n" ++
+    "values=\"-1 0  0  0  0  0 -1  0  0  0  0  0 -1  0  0  1  1  1  0  0\" />\n" ++
+    "</filter>\n"
+
+postamble
+  = "\n</svg>\n"
+
+--
+-- Examples
+--
+
+whiteSquare = Img $ Image (Name "images/white.jpg")        (50,50)
+blackSquare = Img $ Image (Name "images/black.jpg")        (50,50)
+king        = Img $ Image (Name "images/king.png")         (50,50)
+queen       = Img $ Image (Name "images/queen.png")        (50,50)
+bishop      = Img $ Image (Name "images/bishop.png")       (50,50)
+knight      = Img $ Image (Name "images/knight.png")       (50,50)
+rook        = Img $ Image (Name "images/rook.png")         (50,50)
+pawn        = Img $ Image (Name "images/pawn.png")         (50,50)
+
+horse = Img $ Image (Name "images/blk_horse_head.jpg") (150, 200)
+
+repeatH n img | n > 0     = foldl1 beside (replicate n img)
+              | otherwise = error "The first argument to repeatH should be greater than 1"
+
+repeatV n img | n > 0     = foldl1 above (replicate n img)
+              | otherwise = error "The first argument to repeatV should be greater than 1"
