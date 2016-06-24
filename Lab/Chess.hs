@@ -7,9 +7,7 @@
  -}
 
 module Lab.Chess
-  ( pic1
-  , pic2
-  , emptyRow
+  ( emptyRow
   , otherEmptyRow
   , middleBoard
   , whiteRow
@@ -22,3 +20,12 @@ module Lab.Chess
 
 import PicturesSVG
 import Test.QuickCheck
+
+emptyRow :: Picture
+emptyRow = repeatH 4 (whiteSquare `beside` blackSquare)
+
+otherEmptyRow :: Picture
+otherEmptyRow = flipV emptyRow
+
+middleBoard :: Picture
+middleBoard = repeatV 2 (emptyRow `above` otherEmptyRow)
