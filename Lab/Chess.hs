@@ -12,10 +12,10 @@ module Lab.Chess
   , middleBoard
   , whiteRow
   , blackRow
-  , populatedBoard
-  , twoBeside
-  , twoAbove
-  , fourPictures
+--, populatedBoard
+--, twoBeside
+--, twoAbove
+--, fourPictures
   ) where
 
 import PicturesSVG
@@ -29,3 +29,13 @@ otherEmptyRow = flipV emptyRow
 
 middleBoard :: Picture
 middleBoard = repeatV 2 (emptyRow `above` otherEmptyRow)
+
+whiteRow :: Picture
+whiteRow =
+          let
+              pieces = rook `beside` (knight `beside` (bishop `beside` (queen `beside` (king `beside` (bishop `beside` (knight `beside` rook))))))
+           in
+              pieces `over` otherEmptyRow
+
+blackRow :: Picture
+blackRow = invert whiteRow
