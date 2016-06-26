@@ -3,7 +3,7 @@
  - Module:        Lab.Chess
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 21
+ - Last Change:   2016 June 24
  -}
 
 module Lab.Chess
@@ -56,10 +56,10 @@ populatedBoard :: Picture
 populatedBoard = blackRow `above` blackPawns `above` middleBoard `above` whitePawns `above` whiteRow
 
 twoBeside :: Picture -> Picture
-twoBeside pic = pic `beside` (invert pic)
+twoBeside pic = pic `beside` invert pic
 
 twoAbove :: Picture -> Picture
-twoAbove pic = pic `above` (invert pic)
+twoAbove pic = pic `above` invert pic
 
 fourPictures :: Picture -> Picture
 fourPictures pic = twoAbove (twoBeside pic)
