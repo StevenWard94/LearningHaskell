@@ -2,7 +2,7 @@
  - File:          MoreTypes.hs
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 24
+ - Last Change:   2016 June 25
  -}
 
 data TrafficLight = Red | Yellow | Green
@@ -74,6 +74,14 @@ instance YesNo TrafficLight where
     yesno Red = False
     yesno _ = True
 
-
 yesnoIf :: (YesNo y) => y -> a -> a -> a
 yesnoIf ynVal ifYes ifNo = if yesno ynVal then ifYes else ifNo
+
+---------------------------------------------------------------------------------------
+-- implementing fmap with the 'Tree a' type to make it an instance of the
+-- 'Functor' type
+---------------------------------------------------------------------------------------
+
+instance Functor Tree where
+    fmap f EmptyTree = EmptyTree
+    fmap f (Node x leftsub rightsub) = Node (f x) (fmap f leftsub) (fmap f rightsub)
