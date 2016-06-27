@@ -2,13 +2,8 @@
  - File:          Learn.IO.hs
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 25
+ - Last Change:   2016 June 26
  -}
-
-main = do
-    putStrLn "Hello, what is your name?"
-    name <- getLine
-    putStrLn ("Hey " ++ name ++ ", you rock!")
 
 
 import Data.Char
@@ -21,3 +16,9 @@ main = do
     let bigFirstName = map toUpper firstName
         bigLastName  = map toUpper lastName
     putStrLn $ "hey " ++ bigFirstName ++ " " ++ bigLastName ++ ", how are you?"
+
+main = do
+    putStrLn "Hello, what is your name?"
+    name <- getLine
+    putStrLn ("Hey " ++ name ++ ", you rock!")
+
