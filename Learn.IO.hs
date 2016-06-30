@@ -20,6 +20,15 @@ respondPalindromes =
       where isPalindrome xs = xs == reverse xs
 
 
+-- re-implementing System.IO.withFile function
+withFile' :: FilePath -> IOMode -> (Handle -> IO a) -> IO a
+withFile' path mode fx = do
+    handle <- openFile path mode
+    result <- fx handle
+    hClose handle
+    return result
+
+
 -- "inactive" 'main' functions
 voidmain = do
     putStrLn "What's your first name?"
