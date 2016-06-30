@@ -9,19 +9,30 @@
 import System.IO
 
 main = do
-    handle <- openFile "girlfriend.txt" ReadMode
-    contents <- hGetContents handle
-    putStr contents
-    hClose handle
+    withFile "girlfriend.txt" ReadMode (\handle -> do
+        contents <- hGetContents handle
+        putStr contents)
+
+
+
+-- main = do
+--     handle <- openFile "girlfriend.txt" ReadMode
+--     contents <- hGetContents handle
+--     putStr contents
+--     hClose handle
 
 -------------------------------------------------------------------------------
 -- NOTE(S) TO SELF
    ---------------
 --    openFile :: FilePath -> IOMode -> IO Handle
 --
---  FilePath is just a type synonym:
+-- FilePath is just a type synonym:
 --    type FilePath = String
 --
---  IOMode is a type defined like so:
+-- IOMode is a type defined like so:
 --    data IOMode = ReadMode | WriteMode | AppendMode | ReadWriteMode
+--
+--    hGetContents :: Handle -> IO String
+--
+--    hClose :: Handle -> IO ()
 -------------------------------------------------------------------------------
