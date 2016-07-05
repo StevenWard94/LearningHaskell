@@ -2,7 +2,7 @@
  - File:          Learn.IO.hs
  - Author:        Steven Ward <stevenward94@gmail.com>
  - URL:           https://github.com/StevenWard94/LearningHaskell
- - Last Change:   2016 June 29
+ - Last Change:   2016 July 4
  -}
 
 -- NOTE: since only one 'main' function can exist, many are renamed to
@@ -44,3 +44,8 @@ voidmain' = do
     name <- getLine
     putStrLn ("Hey " ++ name ++ ", you rock!")
 
+voidmain'' = do
+    withFile "something.txt" ReadMode (\handle -> do
+        hSetBuffering handle $ BlockBuffering (Just 2048)
+        contents <- hGetContents handle
+        putStr contents)
