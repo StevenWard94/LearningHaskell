@@ -44,3 +44,27 @@ funcLawTwo f g cm =
 
 testLawTwo :: (Eq a) => (a -> a) -> (a -> a) -> CMaybe a -> Bool
 testLawTwo f g cm = fst lawTest == snd lawTest where lawTest = funcLawTwo f g cm
+
+-- some examples of Applicative instance implementations
+data PMaybe a = PNothing | PJust a deriving (Show)
+
+instance Functor PMaybe where
+    fmap _ PNothing = PNothing
+    fmap f (PJust x) = PJust (f x)
+
+instance Applicative PMaybe where
+    pure = PJust
+    PNothing <*> _ = PNothing
+    (PJust f) <*> something = fmap f something
+
+data List a = Empty | List [a] deriving (Show)
+
+instance Functor List where
+    fmap _ Empty = Empty
+    fmap _ (List []) = List []
+    fmap f (List [x]) = List [f x]
+    fmap f (List xs) = List (map f xs)
+
+instance Applicative List where
+    pure x = List [x]
+    (List fs) <*> (List xs) = List [f x | f <- fs, x <- xs]
