@@ -68,3 +68,38 @@ instance Functor List where
 instance Applicative List where
     pure x = List [x]
     (List fs) <*> (List xs) = List [f x | f <- fs, x <- xs]
+
+data MyZipList a = MyZipList [a] deriving (Show)
+
+instance Functor MyZipList where
+    fmap _ (MyZipList []) = MyZipList []
+    fmap f (MyZipList [x]) = MyZipList[f x]
+    fmap f (MyZipList xs) = MyZipList [ f x | x <- xs ]
+
+instance Applicative MyZipList where
+    pure x = MyZipList (repeat x)
+    MyZipList fs <*> MyZipList xs = MyZipList (zipWith (\f x -> f x) fs xs)
+
+
+-- Example of how 'sequencing' affects the implementation of IO as an
+-- instance of Applicative
+myAction :: IO String
+myAction = do
+    a <- getLine
+    b <- getLine
+    return $ a ++ b
+
+myApplicativeAction :: IO String
+myApplicativeAction = (++) <$> getLine <*> getLine
+
+
+-- some more messing around with Control.Applicative
+liftA2' :: (Applicative f) => (a -> b -> c) -> f a -> f b -> f c
+liftA2' f a b = f <$> a <*> b
+
+sequenceA' :: (Applicative f) => [f a] -> f [a]
+sequenceA' [] = pure []
+sequenceA' (x:xs) = (:) <$> x <*> sequenceA xs
+
+sequenceB :: (Applicative f) => [f a] -> f [a]
+sequenceB = foldr (liftA2 (:)) (pure [])
