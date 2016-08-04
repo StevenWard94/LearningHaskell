@@ -103,3 +103,76 @@ sequenceA' (x:xs) = (:) <$> x <*> sequenceA xs
 
 sequenceB :: (Applicative f) => [f a] -> f [a]
 sequenceB = foldr (liftA2 (:)) (pure [])
+
+------------------------------------------------------------------------------------------
+-- The 'newtype' keyword . . .                                                          --
+------------------------------------------------------------------------------------------
+
+newtype ZipList a = ZipList { getZipList :: [a] }
+
+newtype CharList = CharList { getCharList :: [Char] } deriving (Eq, Show)
+
+
+-- example of using 'newtype' to create type class instances
+newtype Pair b a = Pair { getPair :: (a,b) }
+
+instance Functor (Pair c) where
+--  fmap :: (a -> b) -> Pair c a -> Pair c b
+    fmap f (Pair (x,y)) = Pair (f x, y)
+
+
+-- 'newtype' declarations are not only faster than 'data' declarations,
+-- they are also lazier!
+
+--    ghci> undefined
+--    *** Exception: Prelude.undefined
+--    ghci> head [3,4,5,undefined,2,undefined]
+--    3
+-- The above was merely to demonstrate how GHC handles the 'undefined'
+-- value, for the purpose of understanding context later on...
+data CoolBool = CoolBool { getCoolBool :: Bool }
+
+helloMe :: CoolBool -> String
+helloMe (CoolBool _) = "hello"
+--    ghci> helloMe undefined
+--    "*** Exception: Prelude.undefined
+
+newtype KoolBool = KoolBool { getKoolBool :: Bool }
+helloMe' :: KoolBool -> String
+helloMe' (KoolBool _) = "hello"
+--    ghci> helloMe' undefined
+--    "hello"
+
+-- the reason for this difference is that the type defined with 'data'
+-- could (potentially) have more than one value constructor and/or field
+-- and so 'helloMe' must evaluate the CoolBool argument's constructor to
+-- ensure that it is, in fact, of the CoolBool type. KoolBool, on the other
+-- hand, is defined using 'newtype' and so the compiler knows it can have
+-- only one value constructor and one field and thus, does not need to
+-- evaluate the value it receives to ensure that it conforms to the
+-- (KoolBool _) pattern
+
+
+------------------------------------------------------------------------------------------
+-- 'type' vs. 'newtype' vs. 'data'                                                      --
+------------------------------------------------------------------------------------------
+
+-- The 'type' keyword is used only for making "type synonyms", which is
+-- when we give another name to a pre-existing type. For example...
+type IntList = [Int]    -- this makes IntList & [Int] interchangeable because they are the same thing
+--    ghci> ([1,2,3] :: IntList) ++ ([1,2,3] :: [Int])
+--    [1,2,3,1,2,3]
+
+-- The 'newtype' keyword is for taking existing types and wrapping them in
+-- new types, mostly to make it easier to make them instances of certain
+-- type classes. When using 'newtype' to wrap an existing type, the
+-- resulting type is separate from the original type. For example...
+newtype ChList = ChList { getChList :: [Char] }
+-- (++) CANNOT be used to join a ChList and a list of type [Char].
+-- (++) CANNOT even join two ChList's because (++) works only on lists and
+-- the ChList type isn't a list, even though it could be said that it
+-- contains one. However, it is possible to convert two ChList's to [Char]
+-- lists, apply (++) to them, and then convert the resulting list to a ChList
+-- In practice, 'newtype' declarations can be thought of as 'data'
+-- declarations having only ONE CONSTRUCTOR and ONE FIELD. If writing such
+-- a 'data' declaration, consider using 'newtype' instead.
