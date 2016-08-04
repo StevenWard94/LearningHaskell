@@ -2,7 +2,7 @@
 -- Module:        functor_stuff.hs
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell
--- Last Change:   2016 July 28
+-- Last Change:   2016 Aug 03
 --
 
 -- dummy module to remove 'main not defined in Main' warning
