@@ -4,12 +4,13 @@
 -- Module:        Monads.Writer
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 04
+-- Last Change:   2016 Aug 06
 --
 
 module Monads.Writer where
 
 import Data.Monoid
+import qualified Control.Monad.Writer as MW
 
 --
 -- I. Introduction \begin1
@@ -44,7 +45,7 @@ addDrink "beans" = ("milk", Sum 25)
 addDrink "jerky" = ("whiskey", Sum 99)
 addDrink _ = ("beer", Sum 30)
 
---
+--                     \end1
 -- II. The Writer Type \begin1
 --
 -- this is a reimplementation of the Writer monad in Control.Monad.Writer
@@ -64,7 +65,7 @@ instance (Monoid w) => Monad (Writer w) where
                            in Writer (y, v `mappend` v')
 
 
---
+--                            \end1
 -- III. Using the Writer Type \begin1
 --
 
@@ -95,7 +96,7 @@ multLogVerbose = do
     tell ["Gonna multiply these two"]
     return (a*b)
 
---
+--                                  \end1
 -- IV. Adding "Logging" to Programs \begin1
 --
 
@@ -122,3 +123,48 @@ toDiffList xs = DiffList (xs++)
 
 fromDiffList :: DiffList a -> [a]
 fromDiffList (DiffList f) = f []
+
+instance Monoid (DiffList a) where
+    mempty = DiffList (\xs -> [] ++ xs)
+    (DiffList f) `mappend` (DiffList g) = DiffList (\xs -> f (g xs))
+
+-- without DiffList, this was much less efficient than gcdLog
+gcdReverse :: Integer -> Integer -> Writer (DiffList String) Integer
+gcdReverse a b
+  | b == 0 = do
+      tell (toDiffList ["Finished with " ++ show a])
+      return a
+  | otherwise = do
+      result <- gcdReverse b (a `mod` b)
+      tell (toDiffList [show a ++ " % " ++ show b ++ " = " ++ show (a `mod` b)])
+      return result
+
+
+--                          \end1
+-- V. Comparing Performance \begin1
+--
+
+-- To demonstrate how much difference lists (i.e. DiffList) can improve
+-- performance, here is a function that counts down from an arbitrary
+-- number to 0 but produces its "log" in reverse (like 'gcdReverse'), so
+-- that the numbers in the "log" will actually be counted up:
+finalCountDown :: Int -> MW.Writer (DiffList String) ()
+finalCountDown 0 = do
+    MW.tell (toDiffList ["0"])
+finalCountDown x = do
+    finalCountDown (x - 1)
+    MW.tell (toDiffList [show x])
+
+-- this version, which uses [String] instead of a DiffList, is much slower
+slowCount :: Int -> MW.Writer [String] ()
+slowCount 0 = do
+    MW.tell ["0"]
+slowCount x = do
+    slowCount (x - 1)
+    MW.tell [show x]
+
+finalCountDownM_ :: Int -> IO ()
+finalCountDownM_ n = mapM_ putStrLn . fromDiffList . snd . MW.runWriter $ finalCountDown n
+
+slowCountM_ :: Int -> IO ()
+slowCountM_ n = mapM_ putStrLn . snd . MW.runWriter $ slowCount n
