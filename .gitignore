@@ -6,6 +6,7 @@ etc/**
 
 # ignore "dotfiles" in the repository's top-level directory (e.g. '.exrc' or '.ghci')
 .*
+*/.exrc
 #### EXCEPTIONS ####
 !.*/
 !.gitignore

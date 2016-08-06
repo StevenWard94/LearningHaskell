@@ -2,7 +2,7 @@
 -- Module:        knight_quest.hs
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 04
+-- Last Change:   2016 Aug 06
 --
 module KnightQuest where    -- dummy module declaration
 
@@ -14,12 +14,13 @@ module KnightQuest where    -- dummy module declaration
 -- of numbers will represent the knight's position on the chess board,
 -- where the first number is the column and the second number is the row.
 
-import qualified Control.Monad as CM
+import qualified Control.Monad
+import qualified Data.List
 ------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------
 
 -- type synonym for the knight's current position on the board
-type KnightPos = (Int,Int)
+type KnightPos = (Integer,Integer)
 
 -- instead of determining the single "best" move, we use non-determinism to
 -- "pick" ALL moves it can possibly make next!
@@ -29,7 +30,7 @@ moveKnight :: KnightPos -> [KnightPos]
 moveKnight (c,r) = do
     (c',r') <- [(c+2,r-1),(c+2,r+1),(c-2,r-1),(c-2,r+1)
               ,(c+1,r-2),(c+1,r+2),(c-1,r-2),(c-1,r+2)]
-    CM.guard (c' `elem` [1..8] && r' `elem` [1..8])
+    Control.Monad.guard (c' `elem` [1..8] && r' `elem` [1..8])
     return (c',r')
 
 -- for demonstration purposes, here is the same function written without
@@ -59,3 +60,18 @@ in3dont start = return start >>= moveKnight >>= moveKnight >>= moveKnight
 -- knight can get from one to the other in EXACTLY 3 steps
 canReachIn3 :: KnightPos -> KnightPos -> Bool
 canReachIn3 start end = end `elem` in3 start
+
+--
+-- Added later to demonstrate Monadic function composition
+--
+
+replicate' = Data.List.genericReplicate
+(<=<) = (Control.Monad.<=<)
+
+-- Generic version of in3 function that can find 'inN'
+inMany :: Integer -> KnightPos -> [KnightPos]
+inMany x start = return start >>= foldr (<=<) return (replicate' x moveKnight)
+
+-- Generic version of canReachIn3 that checks 'canReachInN'
+canReachIn :: Integer -> KnightPos -> KnightPos -> Bool
+canReachIn x start end = end `elem` inMany x start
