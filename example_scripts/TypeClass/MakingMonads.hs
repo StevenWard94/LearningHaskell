@@ -32,6 +32,10 @@ flatten :: Prob (Prob a) -> Prob a
 flatten (Prob xs) = Prob $ concat $ map multAll xs
     where multAll (Prob inner,p) = map (second (p *)) inner
 
+instance Applicative Prob where
+    pure x = return x
+    Prob fs <*> Prob xs = Prob (zipWith (\(f,p) (x,r) -> (f x,p*r)) fs xs)
+
 instance Monad Prob where
     return x = Prob [(x,1%1)]
     m >>= f = flatten (fmap f m)
