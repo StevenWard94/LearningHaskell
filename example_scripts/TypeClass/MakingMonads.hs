@@ -1,15 +1,17 @@
--- vim: set tw=80 sw=4 sts=2 ts=8 et fdm=marker fmr=\\begin,\\end fdl=1:
--- |
--- Module:        example_scripts/TypeClass.MakingMonads
+-- vim: set tw=80 sw=4 sts=2 ts=8 et fdm=marker fmr=\\begin,\\end foldtext=foldtext():
+
+-- Module:        example_scripts/TypeClass.MakingMonads            \begin1
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 06
+-- Last Change:   2016 Aug 07
 --
 module TypeClass.MakingMonads where
 
 import Data.Ratio
 import Control.Arrow ( first, second )
---
+
+-- \end1
+
 -- I. Making a Prob Monad NewType \begin1
 --
 newtype Prob a = Prob { getProb :: [(a,Rational)] } deriving Show
@@ -34,9 +36,29 @@ flatten (Prob xs) = Prob $ concat $ map multAll xs
 
 instance Applicative Prob where
     pure x = return x
-    Prob fs <*> Prob xs = Prob (zipWith (\(f,p) (x,r) -> (f x,p*r)) fs xs)
+    Prob fs <*> Prob xs = Prob (zipWith (\(f,p) (x,r) -> (f x,p* r)) fs xs)
 
 instance Monad Prob where
     return x = Prob [(x,1%1)]
     m >>= f = flatten (fmap f m)
     fail _ = Prob []
+
+-- \end1
+
+-- II. Modeling Coin Flips \begin1
+--
+
+data Coin = Heads | Tails deriving (Show, Eq)
+
+coin :: Prob Coin
+coin = Prob [ (Heads,1%2), (Tails,1%2) ]
+
+loadedCoin :: Prob Coin
+loadedCoin = Prob [ (Heads,1%10), (Tails,9%10) ]
+
+flipThree :: Prob Bool
+flipThree = do
+    a <- coin
+    b <- coin
+    c <- loadedCoin
+    return $ all (==Tails) [a,b,c]
