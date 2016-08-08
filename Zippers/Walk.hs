@@ -1,15 +1,12 @@
 -- | Module:        Zippers.Walk                                      \begin1
 --   Author:        Steven Ward <stevenward94@gmail.com>
 --   URL:           https://github.com/StevenWard94/LearningHaskell.d
---   Last Change:   2016 Aug 07
+--   Last Change:   2016 Aug 08
 --
 
 module Zippers.Walk where
 
-import Data.Char ( isDigit, isSpace )
-import Data.List.Split ( splitWhen )
-import Prelude hiding ( sum )
-
+import Data.List ( break )
 
 -- I. Making and Using a Tree Data Structure \begin2
 --
@@ -182,55 +179,99 @@ topMost z = topMost $ goUp z
 -- V. Focusing On Lists \begin2
 --
 
-infixr 5 :>
-data List a = List | a :> (List a)
+-- For lists, we are moving back and forth as opposed to up and down. In this
+-- type synonym, the first list is the focused sub-list while the second list is
+-- the list of "breadcrumbs"
+type ListZipper a = ([a],[a])
 
-singleton :: a -> List a
-singleton = \x -> x:>List
+goForward :: ListZipper a -> ListZipper a
+goForward (x:xs, crumbs) = (xs, x:crumbs)
 
-instance (Show a) => Show (List a) where
-    show List = "{ }"
-    show (x:>List) = "{ " ++ show x ++ " }"
-    show (x:>xs) = "{ " ++ show x ++ " " ++ (showTail $ toList xs)
-                where
-                  showTail ls = case ls of
-                      []      -> " }"
-                      [l]     -> show l
-                      (l:ls)  -> show l ++ " " ++ showTail ls
+goBack :: ListZipper a -> ListZipper a
+goBack (xs, crumb:crumbs) = (crumb:xs, crumbs)
 
-instance (Read a) => Read (List a) where
-    readsPrec _ input
-      | null result = [(List, "")]
-      | otherwise = [(fromList result, "")]
-      where
-        result = map read (filter (not . null) (splitWhen isSpace (filter (\c -> isDigit c || isSpace c) input)))
+-- \end
 
-instance (Eq a) => Eq (List a) where
-    list1 == list2 = toList list1 == toList list2
+-- VI. A Very Simple File System \begin2
+--
 
-instance Monoid (List a) where
-    {-# INLINE mempty #-}
-    mempty = List
-    {-# INLINE mappend #-}
-    mappend = (+>)
-    {-# INLINE mconcat  #-}
-    mconcat xss = fromList [ x | xs <- xss, x <- (toList xs) ]
+type Name = String
+type Data = String
+data FSItem = File Name Data | Folder Name [FSItem] deriving (Show)
 
-instance (Ord a) => Ord (List a) where
-    List `compare` List = EQ
-    List `compare` _    = LT
-    _    `compare` List = GT
+-- Here is an example FSItem for use in this section... \begin3
+myDisk :: FSItem
+myDisk =
+    Folder "root"
+        [ File "goat_yelling_like_man.wmv" "baaaaaa"
+        , File "pope_time.avi" " god bless"
+        , Folder "pics"
+            [ File "ape_throwing_up.jpg" "bleargh"
+            , File "watermelon_smash.gif" "smash!!"
+            , File "skull_man(scary).bmp" "Yikes!"
+            ]
+        , File "dijon_poupon.doc" "best mustard"
+        , Folder "programs"
+            [ File "fartwizard.exe" "10gotofart"
+            , File "owl_bandit.dmg" "mov eax, h00t"
+            , File "not_a_virus.exe" "really not a virus"
+            , Folder "source code"
+                [ File "best_hs_prog.hs" "main = print (fix error)"
+                , File "random.hs" "main = print 4"
+                ]
+            ]
+        ]
+-- \end
 
-(+>) :: List a -> List a -> List a
-(+>) List    ys = ys
-(+>) (x:>xs) ys = x :> xs +> ys
+data FSCrumb = FSCrumb Name [FSItem] [FSItem] deriving (Show)
+type FSZipper = (FSItem, [FSCrumb])
 
-toList :: List a -> [a]
-toList List = []
-toList (x:>List) = [x]
-toList (x:>xs) = x : toList xs
+-- Now, going back up in the file system's hierarchy can be done by simply
+-- taking the most recent "breadcrumb" and then assembling a new "focused" file
+-- system from the current focus and that "breadcrumb"...
+fsUp :: FSZipper -> FSZipper
+fsUp (item, FSCrumb name ls rs:bs) = (Folder name $ ls ++ [item] ++ rs, bs)
 
-fromList :: [a] -> List a
-fromList [] = List
-fromList [x] = x:>List
-fromList (x:xs) = x :> fromList xs
+-- Here is a function that will search for and (if found) change the focus to
+-- a given file or folder contained within the currently focused folder...
+fsTo :: Name -> FSZipper -> FSZipper
+fsTo name (Folder folderName items, bs) =
+    let (ls, item:rs) = break (nameIs name) items
+     in (item, FSCrumb folderName ls rs:bs)
+
+nameIs :: Name -> FSItem -> Bool
+nameIs name (Folder folderName _) = name == folderName
+nameIs name (File fileName _) = name == fileName
+
+-- Here is a function that renames the currently focused file or folder
+fsRename :: Name -> FSZipper -> FSZipper
+fsRename newName (Folder name items, bs) = (Folder newName items, bs)
+fsRename newName (File name dat, bs) = (File newName dat, bs)
+
+-- This function adds an item to the current folder...
+fsNewFile :: FSItem -> FSZipper -> FSZipper
+fsNewFile item (Folder folderName items, bs) =
+    (Folder folderName (item:items), bs)
+
+-- \end
+
+-- VII. Making "Safe" Functions With Maybe Type \begin2
+--
+
+-- Although the 'goLeft' and 'goRight' functions work fine on non-empty input
+-- but what if they encounter a "failure" (i.e. an empty item)? This is where
+-- the Maybe type comes in handy...
+safeGoLeft :: Zipper a -> Maybe (Zipper a)
+safeGoLeft (Node x l r, bs) = Just (l, LeftCrumb x r:bs)
+safeGoLeft (Empty, _) = Nothing
+
+safeGoRight :: Zipper a -> Maybe (Zipper a)
+safeGoRight (Node x l r, bs) = Just (r, RightCrumb x l:bs)
+safeGoRight (Empty, _) = Nothing
+
+-- Now, let's do something similar with the 'goUp' function so that it will
+-- return Nothing if it is already at the root of the tree
+safeGoUp :: Zipper a -> Maybe (Zipper a)
+safeGoUp (t, LeftCrumb x r:bs) = Just (Node x t r, bs)
+safeGoUp (t, RightCrumb x l:bs) = Just (Node x l t, bs)
+safeGoUp (_, []) = Nothing
