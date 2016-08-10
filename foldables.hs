@@ -2,11 +2,12 @@
 -- Module:        foldables.hs
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 04
+-- Last Change:   2016 Aug 09
 --
 
 module Foldables where
 
+import Prelude hiding ( foldr, foldl )
 import qualified Data.Foldable as F
 
 -- Tree type
