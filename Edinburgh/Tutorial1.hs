@@ -3,7 +3,7 @@
 -- Module:        Edinburgh.Tutorial1
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 09
+-- Last Change:   2016 Aug 10
 --
 
 -- This module consists of my (attempted) solutions to the first Edinburgh Tutorial:
