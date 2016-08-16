@@ -3,7 +3,7 @@
 -- Module:        Edinburgh.Tutorial3
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 14
+-- Last Change:   2016 Aug 15
 --
 
 -- This module consists of my (attempted) solutions to the third Edinburgh Tutorial:
@@ -98,7 +98,7 @@ alphas str = filter isAlpha str
 -- 2. (b) A function, rmChar, that removes all occurrences of a character from
 -- a string.
 rmChar :: Char -> String -> String
-rmChar c str = filter (== c) str
+rmChar c = filter (/=c)
 
 -- 2. (c) A function, above, that removes all numbers less than or equal to
 -- a given number.
@@ -162,3 +162,221 @@ prop_reverseEvenLen strs =
 
 -- \end2
 -- \end
+
+-- Fold \begin
+
+-- INTRODUCTION \begin2
+-- The 'map' and 'filter' functions act on elements individually; they never
+-- combine one element with another. Sometimes, it is necessary to combine
+-- elements using some operation. For example, the 'sum' function can be written
+-- like this:
+--     sum []     = 0
+--     sum (x:xs) = x + sum xs
+-- Essentially, this just combines the elements of the given list using the '+'
+-- operation. Another example is reverse:
+--     reverse []     = []
+--     reverse (x:xs) = reverse xs ++ [x]
+-- This function just combines the elements, one by one, by appending them onto
+-- the end of the reversed list. This time, the "combining" function is a little
+-- harder to see. It may be more obvious written this way:
+--     reverse []     = []
+--     reverse (x:xs) = x `snoc` reverse xs
+--
+--     snoc x xs = xs ++ [x]
+-- Now it's easier to see that `snoc` plays the same role as '+' in the example
+-- of 'sum'. These, and many others, follow a pattern: breaking the list into
+-- its head (x) and tail (xs), recursing on 'xs', and then applying some
+-- function to 'x' and the modified 'xs'. The only things that must be specified
+-- are the function (e.g. (+) or `snoc`) and the "initial value" (e.g. 0 in the
+-- case of 'sum' or [] in the case of 'reverse'.
+--
+-- This pattern is called a "fold" and is implemented in Haskell via the
+-- function, 'foldr'.
+--                                  foldr :: (a -> b -> b) -> b -> [a] -> b
+--     g []     = u                 foldr f u []     = u
+--     g (x:xs) = x `f` g xs        foldr f u (x:xs) = x `f` foldr f u xs
+-- The function, 'g', can be written with recursion (as above) or using a fold;
+-- both definitions are equivalent:    g xs = foldr f u xs
+--
+-- One way to visualize the action of foldr is shown in the figure below. Given
+-- a function, f :: a -> b -> b, an initial value, u :: b (sometimes called the
+-- "unit"), and a list, [x₁,x₂,...,xₙ] of type [a]. the 'foldr' function returns
+-- the value that results from replacing every cons (:) in 'list' with 'f' and
+-- replacing the terminating [] (nil) with u.
+--
+--     x₁  :  (x₂  :  . . .  :  (xₙ  :  []  )...)
+--         |       |         |       |   |
+--         ↓       ↓         ↓       ↓   ↓
+--     x₁ `f` (x₂ `f` . . . `f` (xₙ `f`  u  )...)
+--
+-- For example, 'sum :: [Int] -> Int' can be defined as follows, using (+) as
+-- the function and 0 as the unit:
+--     sum :: [Int] -> Int            10  :  20  :  30  :  []
+--     sum ns = foldr (+) 0 ns            ↓      ↓      ↓   ↓
+--                                    10  +  20  +  30  +   0
+--                                illustration of 'foldr (+) 0 [10,20,30]'
+-- \end2
+
+-- Exercise 4 \begin2
+-- To practice using 'foldr', we will write several functions, first with
+-- recursion, and then using 'foldr'. For each pair of functions, use QuickCheck
+-- to confirm that they are equivalent.
+
+-- 4. (a) Write a recursive function, productRec, that computes the product of
+-- the numbers in a list. Then, write an equivalent function, productFold, using
+-- 'foldr'.
+productRec :: [Int] -> Int
+productRec []     = 1
+productRec (x:xs) = x * productRec xs
+
+productFold :: [Int] -> Int
+productFold xs = foldr (*) 1 xs
+
+prop_product :: [Int] -> Bool
+prop_product xs = productRec xs == productFold xs
+
+
+-- 4. (b) Write a recursive function, andRec, that checks whether every item in
+-- a list is True. Then, write the same function using 'foldr', called andFold.
+andRec :: [Bool] -> Bool
+andRec []     = True
+andRec (q:qs) = q && andRec qs
+
+andFold :: [Bool] -> Bool
+andFold qs = foldr (&&) True qs
+
+prop_and :: [Bool] -> Bool
+prop_and qs = andRec qs == andFold qs
+
+
+-- 4. (c) Write a recursive function, concatRec, that concatenates a list of
+-- lists into a single list. Then, write an equivalent function, concatFold,
+-- using 'foldr'
+concatRec :: [[a]] -> [a]
+concatRec []     = []
+concatRec (l:ls) = l ++ concatRec ls
+
+concatFold :: [[a]] -> [a]
+concatFold ls = foldr (++) [] ls
+
+prop_concat :: Eq a => [[a]] -> Bool
+prop_concat ls = concatRec ls == concatFold ls
+
+
+-- 4. (d) Write a recursive function, rmCharsRec, that removes all characters in
+-- the first string from the second string, using the 'rmChar' function from
+-- exercise (2b). Then write the same function using 'foldr', rmCharsFold.
+rmCharsRec :: String -> String -> String
+rmCharsRec _  []      = []
+rmCharsRec [] str     = str
+rmCharsRec (c:cs) str = rmChar c $ rmCharsRec cs str
+
+rmCharsFold :: String -> String -> String
+rmCharsFold cs str = foldr rmChar str cs
+
+prop_rmChars :: String -> String -> Bool
+prop_rmChars str1 str2 = recursion == folding
+    where recursion = rmCharsRec  str1 str2
+          folding   = rmCharsFold str1 str2
+-- \end2
+-- \end
+
+-- Matrix manipulation \begin
+
+-- Next, we will look at matrix addition and multiplication. To represent
+-- matrices, we will use lists of lists of Int values; for example:
+--     ⌈ 1 4 9 ⌉                     [[1,4,9],
+--     ⌊ 2 5 7 ⌋  is represented as   [2,5,7]] .
+type Matrix = [[Int]]
+-- Our first task is to write a test to show whether a given list of lists of Int
+-- values is a matrix. This test should verify two things: 1) that the lists of
+-- Int values are all of equal length, and 2) that there is at least one row and
+-- one column in the list of lists.
+
+-- Exercise 5 \begin2
+-- 5. (a) Write a function, uniform, that tests whether the integers in a list
+-- are all equal. You can use the library function, 'all', which tests whether
+-- all elements of a list satisfy a given predicate. If you want, you can try to
+-- define 'all' in terms of foldr and map.
+all' :: (a -> Bool) -> [a] -> Bool
+all' f = foldr (&&) True . map f
+
+uniform :: [Int] -> Bool
+uniform [] = True
+uniform xs = all' (== head xs) (tail xs)
+
+-- 5. (b) Using the function, 'uniform', write a function, valid, that tests
+-- whether a list of lists of Int values is a matrix.
+valid :: Matrix -> Bool
+valid []     = False
+valid (x:xs) = not (null x) && uniform (map length (x:xs))
+
+-- \end2
+
+-- A useful higher-order function is 'zipWith'. It is a lot like the function
+-- 'zip', which takes two lists and combines the corresponding elements into
+-- a list of pairs. The difference is that instead of combining elements as
+-- a pair, zipWith uses a specified function to combine corresponding elements.
+-- The definition (followed by an illustration) is as follows:
+--     zipWith f [] _  = []
+--     zipWith f _  [] = []
+--     zipWith f (x:xs) (y:ys) = f x y : zipWith f xs ys
+--
+--       x₁     :   (x₂      : . . . :   (xₙ      :   []   )...)
+--       y₁     :   (y₂      : . . . :   (yₙ      :   []   )...)
+--       ↓           ↓                    ↓            ↓
+--    f(x₁)(y₁) : (f(x₂)(y₂) : . . . : (f(xₙ)(yₙ) :   []   )...)
+--
+-- Another useful function for working with pairs is 'uncurry', which turns
+-- a function that takes two arguments into a function that operates on a pair.
+
+-- Exercise 6 \begin2
+-- 6. (a) What is returned by the expression, uncurry (+) (10,8)?    Answer: 18
+
+-- 6. (b) Define 'zipWith' using 'zip' and a list comprehension.
+zipWith' :: (a -> b -> c) -> [a] -> [b] -> [c]
+zipWith' f xs ys = [ f x y | x <- xs, y <- ys ]
+
+-- 6. (c) Define 'zipWith' using 'zip' and the higher-order functions, 'map' and
+-- 'uncurry', instead of a list comprehension.
+zipWith'' :: (a -> b -> c) -> [a] -> [b] -> [c]
+zipWith'' f xs ys = map (uncurry f) $ zip xs ys
+
+-- \end2
+
+-- Adding two matrices of equal size is done by pairwise-adding corresponding
+-- elements (i.e. [a]ij + [b]ij = [c]ij) to form the corresponding element in
+-- the sum. Now, we will use 'zipWith' to implement matrix addition.
+
+-- Exercise 7 \begin2
+-- Write a function, plusM, that adds two matrices. Return an error if the input
+-- is not suitable for matrix addition. It may be helpful to define a helper
+-- function, plusRow, that adds two rows of a matrix.
+plusRow :: [Int] -> [Int] -> [Int]
+plusRow = zipWith (+)
+
+plusM :: Matrix -> Matrix -> Matrix
+plusM mA mB =
+        if invalid
+            then undefined
+            else zipWith plusRow mA mB
+                where invalid = not . and $ [valid mA && valid mB, length mA == length mB, length (head mA) == length (head mB)]
+-- \end2
+
+-- For matrix multiplication, we are going to use the "dot product" or "inner
+-- product" of two vectors, given by:
+--         (a₁,a₂,...,aₙ) · (b₁,b₂,...,bₙ) ≡ a₁b₁ + a₂b₂ + ... + aₙbₙ
+-- Matrix multiplication is then defined as follows: two matrices with
+-- dimensions (n,m) and (m,p) are multiplied to form a matrix of dimension (n,p)
+-- in which the element in row i, column j is the dot product of row i in the
+-- first matrix and column j in the second. For example:
+--         ⌈  1   10 ⌉   ⌈ 1 2 ⌉   ⌈  31  42 ⌉
+--         ⌊ 100  10 ⌋ × ⌊ 3 4 ⌋ ⁼ ⌊ 130 240 ⌋
+
+-- Exercise 8 \begin2
+-- Define a function, timesM, to perform matrix multiplication. Return an error
+-- if the input is not suitable. It may be helpful to define a helper function,
+-- dot, for the dot product of two vectors. The function should take the dot
+-- product of the single row with every column of the matrix, and return the
+-- values as a list. To make the columns of a matrix readily available, you can
+-- use the function 'transpose'.
