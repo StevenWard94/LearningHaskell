@@ -19,6 +19,7 @@ module Edinburgh.Tutorial3 where
 
 import Test.QuickCheck
 import Data.Char ( toUpper, isAlpha )
+import Data.List ( transpose )
 
 -- Map \begin
 
@@ -380,3 +381,117 @@ plusM mA mB =
 -- product of the single row with every column of the matrix, and return the
 -- values as a list. To make the columns of a matrix readily available, you can
 -- use the function 'transpose'.
+type Vec = [Int]
+
+nRows :: Matrix -> Int
+nRows = length
+
+nCols :: Matrix -> Int
+nCols = length . head
+
+dot :: Vec -> Vec -> Int
+dot u v = foldr (+) 0 $ zipWith (*) u v
+
+timesM :: Matrix -> Matrix -> Matrix
+timesM mA mB
+  | not invalid = [ [ dot rowV colV | colV <- transpose mB ] | rowV <- mA ]
+  | otherwise = undefined
+  where invalid = not . and $ [ valid mA, valid mB, nCols mA == nRows mB ]
+
+-- \end2
+-- \end
+
+-- Optional Material \begin
+
+-- For a real challenge, you can try to compute the inverse of a matrix. There
+-- are a few steps involved in this process:
+--   (a) The entries of the matrix should be changed to Double or (even better)
+--     Rational values to allow proper division.
+--
+--   (b) You will need a function to find the "determinant" of a matrix. This
+--     will tell you if it has an inverse.
+--
+--   (c) You will need a function to do the actual inversion.
+--
+-- There are several different algorithms available to compute the determinant
+-- and the inverse of a matrix. Good places to start looking are:
+--     http://mathworld.wolfram.com/MatrixInverse.html
+--     http://en.wikipedia.org/wiki/Invertible_matrix
+--
+-- Finally, implement an appropriate quickCheck test for your function.
+
+type Matrix_ a = [[a]]
+
+height :: Matrix_ a -> Int
+height = length
+
+width :: Matrix_ a -> Int
+width = length . head
+
+valid_ :: Matrix_ a -> Bool
+valid_ [] = False
+valid_ m  = not (null . head $ m) && uniform (map length m)
+
+(.+) :: (Num a) => Matrix_ a -> Matrix_ a -> Matrix_ a
+mA .+ mB
+  | sumExists = zipWith (zipWith (+)) mA mB
+  | otherwise = undefined
+  where sumExists = and [ valid_ mA, valid_ mB, width mA == width mB, height mA == height mB ]
+infixl 6 .+
+
+type Vector a = [a]
+(*.) :: (Num a) => Vector a -> Vector a -> a
+u *. v = foldr (+) 0 $ zipWith (*) u v
+infixl 7 *.
+
+(.*) :: (Num a) => Matrix_ a -> Matrix_ a -> Matrix_ a
+mA .* mB
+  | dotExists = [ [ rowV *. colV | colV <- transpose mB ] | rowV <- mA ]
+  | otherwise = undefined
+  where dotExists = and [ valid_ mA, valid_ mB, width mA == height mB ]
+infixl 7 .*
+
+matrixMap :: (a -> b) -> Matrix_ a -> Matrix_ b
+matrixMap = map . map
+
+matrixZipWith :: (a -> b -> c) -> Matrix_ a -> Matrix_ b -> Matrix_ c
+matrixZipWith = zipWith . zipWith
+
+rmPermute :: [a] -> Matrix_ a
+rmPermute xs = case xs of
+                 []     -> []
+                 (x:xs) -> xs : map (x :) (rmPermute xs)
+
+-- this function takes a matrix and returns a matrix of matrices resulting from the
+-- "permuted removal" of one row and one column from the original matrix (this simulates
+-- the method of using "minors" to calculate det() of large matrices)
+minorsMatrix :: Matrix_ a -> Matrix_ (Matrix_ a)
+minorsMatrix = map (map transpose . rmPermute . transpose) . rmPermute
+
+-- this function generates a permutation matrix for the given height (h) and
+-- width (w)
+perMatrix :: (Num a) => Int -> Int -> Matrix_ a
+perMatrix w h = take h $ cycle [ iEven, iOdd ]
+    where iEven = take w $ cycle [1,-1]
+          iOdd  = take w $ cycle [-1,1]
+
+det :: (Num a) => Matrix_ a -> a
+det [[a]] = a
+det m     = sum $ zipWith (*) (head $ matrixZipWith f m (minorsMatrix m)) (cycle [1,-1])
+    where f a m = a * det m
+
+cofactors :: (Num a) => Matrix_ a -> Matrix_ a
+cofactors m = matrixZipWith (*) (matrixMap det $ minorsMatrix m) sgn
+    where sgn = perMatrix (width m) (height m)
+
+expand :: (Num a) => a -> Matrix_ a -> Matrix_ a
+expand = map . map . (*)
+
+invert :: (Fractional a) => Matrix_ a -> Matrix_ a
+invert m = expand (1 / det m) (transpose $ cofactors m)
+
+
+-- Test Functions
+identity :: (Num a) => Int -> Matrix_ a
+identity r = map replrep [0..r-1]
+    where replrep m = take r $ replicate m 0 ++ [1] ++ repeat 0
