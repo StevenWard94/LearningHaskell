@@ -3,7 +3,7 @@
 -- Module:        Edinburgh.Tutorial3
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 15
+-- Last Change:   2016 Aug 17
 --
 
 -- This module consists of my (attempted) solutions to the third Edinburgh Tutorial:
@@ -20,6 +20,7 @@ module Edinburgh.Tutorial3 where
 import Test.QuickCheck
 import Data.Char ( toUpper, isAlpha )
 import Data.List ( transpose )
+import Data.Ratio
 
 -- Map \begin
 
@@ -492,6 +493,19 @@ invert m = expand (1 / det m) (transpose $ cofactors m)
 
 
 -- Test Functions
-identity :: (Num a) => Int -> Matrix_ a
-identity r = map replrep [0..r-1]
-    where replrep m = take r $ replicate m 0 ++ [1] ++ repeat 0
+idMatrix :: (Num a) => Int -> Matrix_ a
+idMatrix n = map r [0..n-1]
+    where r v = take n $ replicate v 0 ++ [1] ++ repeat 0
+
+prop_invert2D :: Ratio Integer -> Ratio Integer -> Ratio Integer -> Ratio Integer -> Property
+prop_invert2D a b c d = let m = [[a,b],[c,d]]
+                         in det m /= 0 ==> 
+                             m .* invert m == idMatrix 2 && invert m .* m == idMatrix 2
+
+type Triple a = (a,a,a)
+prop_invert3D :: Triple (Ratio Integer) -> Triple (Ratio Integer) ->
+                 Triple (Ratio Integer) -> Property
+prop_invert3D i j k = let row (a1,a2,a3) = [a1,a2,a3]
+                          m              = [ row i, row j, row k ]
+                       in det m /= 0 ==>
+                           m .* invert m == idMatrix 3 && invert m .* m == idMatrix 3
