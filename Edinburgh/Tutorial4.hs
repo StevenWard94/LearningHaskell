@@ -3,7 +3,7 @@
 -- Module:        Edinburgh.Tutorial4
 -- Author:        Steven Ward <stevenward94@gmail.com>
 -- URL:           https://github.com/StevenWard94/LearningHaskell.d
--- Last Change:   2016 Aug 17
+-- Last Change:   2016 Aug 18
 --
 
 -- This module consists of my (attempted) solutions to the fourth Edinburgh Tutorial:
@@ -82,17 +82,17 @@ testAddrBook = [ ("Don Sannella", "dts@inf.ed.ac.uk"), ("Karoliina Lehtinen", "m
 getURL :: URL -> IO String
 getURL = (getResponseBody =<<) . simpleHTTP . getRequest
 
---emailsFromURL :: URL -> IO ()
---emailsFromURL url = do
---                      html <- getURL url
---                      let emails = emailsFromHTML html
---                      putStr $ ppAddrBook emails
+emailsFromURL :: URL -> IO ()
+emailsFromURL url = do
+                      html <- getURL url
+                      let emails = emailsFromHTML html
+                      putStr $ ppAddrBook emails
 
---emailsByNameFromURL :: URL -> Name -> IO ()
---emailsByNameFromURL url name = do
---                                 html <- getURL url
---                                 let emails = emailsByNameFromHTML html name
---                                 putStr $ ppAddrBook emails
+emailsByNameFromURL :: URL -> Name -> IO ()
+emailsByNameFromURL url name = do
+                                 html <- getURL url
+                                 let emails = emailsByNameFromHTML html name
+                                 putStr $ ppAddrBook emails
 
 -- \end
 
@@ -309,12 +309,75 @@ emailsByInitialsFromHTML initials = emailsByMatchFromHTML $ hasInitials initials
 -- Write a function, myCriteria, which tests whether a name matches a criterion
 -- of your choice. Then, use this function along with the previous functions to
 -- define 'emailsByMyCriteriaFromHTML'.
-myCriteria :: [String] -> (Name,Email) -> Bool
-myCriteria _  ("","") = True
-myCriteria [] _  = False
-myCriteria rmv (name,email) =
-    case length rmv of
-      1 -> if name `contains` head rmv then True else False
-      2 | (null . head) rmv -> if email `contains` head rmv then True else False
-        | otherwise         -> myCriteria [head rmv] (name,email) || myCriteria ([""] ++ tail rmv) (name,email)
-      _ -> myCriteria (take 2 rmv) (name,email)
+
+-- myCriteria takes a string and if that string contains an '@' or a '.', then
+-- it matches the string (or part of the string) against the (Name,Email) pair's
+-- email. Otherwise, it matches the pair's name against the string and the
+-- substrings within the string with at least half the length of the string
+-- (removing characters from the end of the string).
+-- The intended use case (at least for me) is for the first argument to be 1)
+-- a more than half-complete email address (contains '@', e.g. "94@gmail.com"),
+-- 2) an email domain name (contains '.', e.g. "gmail.com" or "umd.edu"), or 3)
+-- a name, or part of a name, that needs only be SIMILAR to the pair's name (for
+-- example, 'myCriteria "Stevenson" ("Steven Ward",email)' returns True); this
+-- function is intended for selecting (Name,Email) pairs that RETURN FALSE
+myCriteria :: String -> (Name,Email) -> Bool
+myCriteria [] _      = True
+myCriteria _ ([],[]) = False
+myCriteria rmv (name,email)
+  | rmv `contains` "@" = email `contains` rmv
+  | rmv `contains` "." = (dropUntil "@" email) `contains` rmv
+  | otherwise          = any (name `contains`) [ take (length rmv - i) rmv | i <- [0..length rmv `div` 2] ]
+
+takeEmailsWith' :: ((Name,Email) -> Bool) -> [(Name,Email)] -> [(Name,Email)]
+takeEmailsWith' _ []            = []
+takeEmailsWith' p ((n,e):addrs) = if p (n,e) then (n,e) : takeEmailsWith' p addrs else takeEmailsWith' p addrs
+
+emailsByPairsFromHTML :: ((Name,Email) -> Bool) -> HTML -> [(Name,Email)]
+emailsByPairsFromHTML = (. emailsFromHTML) . takeEmailsWith'
+
+emailsByMyCriteriaFromHTML :: String -> HTML -> [(Name,Email)]
+emailsByMyCriteriaFromHTML = emailsByPairsFromHTML . myCriteria
+
+-- \end
+
+-- Pretty Printing \begin
+
+-- INTRODUCTION \begin
+-- We often want to look at the output of a function (e.g. emailsFromHTML) and
+-- would prefer if it was formatted in a nicer way. This formatting is referred
+-- to as "pretty printing". In 'emailsFromURL', the output of 'emailsFromHTML'
+-- is currently being "pretty printed" by a function called 'ppAddrBook'. In the
+-- following exercise, you will be rewriting that function to make
+-- 'emailsFromURL' produce a different output.
+--
+-- You will need two pieces of information to complete this exercise: First, you
+-- may assume that if a name has more that one word, then the first word is
+-- a first name and the second word is a last name. Second, the column of names
+-- and the column of emails should both be left-justified. For example:
+--     Lehtinen, Karoliina      m.k.lehtinen@sms.ed.ac.uk
+--     Sannella, Don            dts@inf.ed.ac.uk
+-- In order to print a formatted block of text like this, we cannot simply
+-- return it from a function because GHCi will always escape special characters
+-- like '\n'. The library function, 'putStr', however, will change '\n'
+-- characters to actual newlines before printing the string to the screen.
+--        \end
+
+-- Exercise 15:
+-- Write the function, ppAddrBook, so that it outputs (Name,Email) pairs in two
+-- left-justified columns. Make sure that your function can handle names given
+-- in the format, "firstname lastname" as well as those given in the format,
+-- "lastname, firstname".
+fmtName :: Name -> String
+fmtName name
+  | name `contains` "," = name
+  | otherwise           = dropUntil " " name ++ ", " ++ takeUntil " " name
+
+ppAddrBook :: [(Name,Email)] -> String
+ppAddrBook addrBook =
+    let colwidth = (+) 4 $ maximum . map (length . fst) $ addrBook
+        ppLine = uncurry ((++) . take colwidth . (++ repeat ' ') . fmtName)
+     in unlines [ ppLine addr | addr <- addrBook ]
+
+--     \end
+-- \end
