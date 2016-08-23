@@ -114,10 +114,13 @@ instance Arbitrary Prop where
                                       , liftM Not subform
                                       , liftM2 (:|:) subform subform
                                       , liftM2 (:&:) subform subform
+                                      , liftM2 (:->:) subform subform
+                                      , liftM2 (:<->:) subform' subform'
                                       ]
                  where
                    atom = oneof [liftM Var (elements ["P","Q","R","S"]), elements [F,T]]
-                   subform = prop (n `div` 2)
+                   subform  = prop (n `div` 2)
+                   subform' = prop (n `div` 4)
 
 -- The type 'Prop' is a representation of propositional formulas. Propositional
 -- variables such as 'P' and 'Q' can be represented as 'Var "P"' and 'Var "Q"'.
@@ -303,15 +306,15 @@ prop_taut  =  liftM2 (==) tautology (not . satisfiable . Not)
 --   T F |   F                                  T F |    F
 --   T T |   T                                  T T |    T
 
--- 5. (a) Go to the declaration of the 'Prop' datatype above and extend it with
+-- 6. (a) Go to the declaration of the 'Prop' datatype above and extend it with
 -- the infix constructors, ':->:' and ':<->:'
 -- SEE DATA DECLARATION IN INTRODUCTION
 
--- 5. (b) Extend the definitions for the 'showProp', 'eval' and 'names'
+-- 6. (b) Extend the definitions for the 'showProp', 'eval' and 'names'
 -- functions to cover the new constructors :->: and :<->:. Test your definitions
 -- by printing out the truth tables above.
 
--- 5. (c) Define the following formulas as 'Prop's, check their
+-- 6. (c) Define the following formulas as 'Prop's, check their
 -- satisfiability and print their truth tables.
 
 -- (c)   i.  ((P → Q) & (P ↔ Q))
@@ -328,3 +331,27 @@ p6  =  (Var "P" :<->: Var "Q") :&: ((Var "P" :&: Not (Var "Q")) :|: (Not (Var "P
 
 truthTables_p4p5p6 :: IO ()
 truthTables_p4p5p6 = tables [p4,p5,p6]
+-- \end
+
+-- Exercise 7 \begin
+-- Two formulas are "equivalent" if they always have the same truth values,
+-- regardless of the values of their propositional variables. In other words,
+-- formulas are equivalent if, in any given environment, they are either both
+-- true or both false
+
+-- 7. (a) Write a function, equivalent, that returns True only when two
+-- propositions are equivalent in the above sense.
+equivalent :: Prop -> Prop -> Bool
+equivalent p q = let envList = envs $ nub (names p ++ names q)
+                  in and [ eval e p == eval e q | e <- envList ]
+
+-- 7. (b) Write another version of 'equivalent', this time by combining the two
+-- arguments into a larger proposition and then using 'tautology' or
+-- 'satisfiable' to evaluate it.
+equivalent' :: Prop -> Prop -> Bool
+equivalent' = (tautology .) . (:<->:)
+
+-- 7. (c) Write a QuickCheck test property to verify that the two versions of
+-- 'equivalent' are equivalent.
+prop_equivalent :: Prop -> Prop -> Bool
+prop_equivalent p q = equivalent p q == equivalent' p q
