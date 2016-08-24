@@ -102,6 +102,7 @@ data Prop = Var Name
           | Prop :&: Prop
           | Prop :->: Prop
           | Prop :<->: Prop
+          deriving (Eq, Ord)
 
 instance Show Prop where
     show  =  showProp
@@ -163,11 +164,11 @@ showProp :: Prop -> String
 showProp (Var x)        = x
 showProp F              = "F"
 showProp T              = "T"
-showProp (Not p)        = "(∼" ++ show p ++ ")"
+showProp (Not p)        = "(~" ++ show p ++ ")"
 showProp (p :|: q)      = "(" ++ show p ++ " | " ++ show q ++ ")"
 showProp (p :&: q)      = "(" ++ show p ++ " & " ++ show q ++ ")"
-showProp (p :->: q)     = "(" ++ show p ++ " → " ++ show q ++ ")"
-showProp (p :<->: q)    = "(" ++ show p ++ " ↔ " ++ show q ++ ")"
+showProp (p :->: q)     = "(" ++ show p ++ " -> " ++ show q ++ ")"
+showProp (p :<->: q)    = "(" ++ show p ++ " <-> " ++ show q ++ ")"
 
 -- names: returns all variable names contained in a proposition
 names :: Prop -> Names
@@ -355,3 +356,104 @@ equivalent' = (tautology .) . (:<->:)
 -- 'equivalent' are equivalent.
 prop_equivalent :: Prop -> Prop -> Bool
 prop_equivalent p q = equivalent p q == equivalent' p q
+
+-- \end
+
+-- The "subformulas" of a proposition are defined as follows:
+--
+--   ∙ A propositional letter 'P' or a constant 't' or 'f' has itself as its
+--   only subformula.
+--
+--   ∙ A proposition of the form '¬P' has as subformulas, itself and all
+--   subformulas of 'P'
+--
+--   ∙ A proposition of the form 'P & Q', 'P ∨ Q', 'P → Q', or 'P ↔ Q' has as
+--   subformulas, itself and all subformulas of 'P' and 'Q'
+--
+-- The function 'fullTable' defined below prints out a truth table for
+-- a formula, with an additional column for each of the formula's non-trivial
+-- subformulas.
+fullTable :: Prop -> IO ()
+fullTable = tables . filter nontrivial . subformulas
+    where nontrivial :: Prop -> Bool
+          nontrivial (Var _) = False
+          nontrivial T       = False
+          nontrivial F       = False
+          nontrivial _       = True
+
+-- Exercise 8 \begin
+-- Define a function, subformulas, that returns all of the subformulas of
+-- a given formula. For example:
+--     *Main> map showProp (subformulas p2)
+--     ["((P|Q)&((~P)&(~Q)))","(P|Q)","P","Q","((~P)&(~Q))","(~P)","(~Q)"]
+-- (We need to use 'map showProp' here in order to convert each proposition into
+-- a distinct string; otherwise, we could not easily view the results.)
+-- After defining the function, test out 'subformulas' and 'fullTable' on each
+-- of the Props you defined earlier (i.e. p1 - p6).
+subformulas :: Prop -> [Prop]
+subformulas (Not p)      =  Not p : subformulas p
+subformulas (p :|: q)    =  (p :|: q)   : nub (subformulas p ++ subformulas q)
+subformulas (p :&: q)    =  (p :&: q)   : nub (subformulas p ++ subformulas q)
+subformulas (p :->: q)   =  (p :->: q)  : nub (subformulas p ++ subformulas q)
+subformulas (p :<->: q)  =  (p :<->: q) : nub (subformulas p ++ subformulas q)
+subformulas p            =  [p]
+
+--     \end
+--   \end
+-- \end
+
+-- Optional Material \begin
+
+-- NORMAL FORMS
+-- In this part of the tutorial we will put propositional formulas into several
+-- different "normal forms". First, we will deal with "negation" normal form. As
+-- a reminder, a formula is in "negation normal form" if it consists of ONLY the
+-- connectives, '∨' and '&', unnegated propositional variables, 'P', and negated
+-- propositional variables, '¬P', and the constants 't' and 'f'. Thus, negation
+-- is ONLY APPLIED TO PROPOSITIONAL VARIABLES AND NOTHING ELSE.
+--
+-- To transform a formula into "negation normal form", you may want to use the
+-- following equivalences:
+--                 ¬(P & Q) ⇔ (¬P) ∨ (¬Q)
+--                 ¬(P ∨ Q) ⇔ (¬P) & (¬Q)
+--                  (P → Q) ⇔ (¬P) ∨ Q
+--                  (P ↔ Q) ⇔ (P → Q) & (Q → P)
+--                    ¬(¬P) ⇔ P
+
+-- Exercise 9:
+-- Write a function, isNNF, to test whether a Prop is in negation normal form
+isNNF :: Prop -> Bool
+isNNF (p :|: q)      =  isNNF p && isNNF q
+isNNF (p :&: q)      =  isNNF p && isNNF q
+isNNF (Not (Var _))  =  True
+isNNF (Var _)        =  True
+isNNF T              =  True
+isNNF F              =  True
+isNNF _              =  False
+
+
+-- Exercise 10:
+-- Write a function, toNNF, that puts an arbitrary Prop into negation normal
+-- form. Use the test properties 'prop_NNF1' and 'prop_NNF2' to verify that your
+-- function is correct. (Hint: don't be alarmed if you need many case
+-- distinctions).
+toNNF :: Prop -> Prop
+toNNF = nnorm
+    where nnorm (Not (p :|: q))    =  nnorm (Not p) :&: nnorm (Not q)
+          nnorm (Not (p :&: q))    =  nnorm (Not p) :|: nnorm (Not q)
+          nnorm (Not (Not x))      =  nnorm x
+          nnorm (Not F)            =  T
+          nnorm (Not T)            =  F
+          nnorm (Not (p :->: q))   =  nnorm (Not (nnorm (p :->: q)))
+          nnorm (Not (p :<->: q))  =  nnorm (Not (nnorm (p :<->: q)))
+          nnorm (p :->: q)         =  nnorm (Not p) :|: nnorm q
+          nnorm (p :<->: q)        =  nnorm (p :->: q) :&: nnorm (q :->: p)
+          nnorm (p :|: q)          =  nnorm p :|: nnorm q
+          nnorm (p :&: q)          =  nnorm p :&: nnorm q
+          nnorm x                  =  x
+
+prop_NNF1 :: Prop -> Bool
+prop_NNF1 = isNNF . toNNF
+
+prop_NNF2 :: Prop -> Bool
+prop_NNF2 = ap equivalent toNNF
