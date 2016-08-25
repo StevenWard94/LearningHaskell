@@ -457,3 +457,60 @@ prop_NNF1 = isNNF . toNNF
 
 prop_NNF2 :: Prop -> Bool
 prop_NNF2 = ap equivalent toNNF
+
+
+-- Next, we will turn a formula into "conjunction" normal form. This means that
+-- the formula is a "conjunction of clauses", and a clause is a disjunction of
+-- (possibly negated) propositional variables, called "atoms". You will need to
+-- pay special attention to the constants 't' and 'f'. The Props, 'T' and 'F',
+-- themselves are considered to be in "conjunction" normal form, but otherwise
+-- should not occur within formulas in normal form. They can be eliminated using
+-- the following equivalences:
+--                 (P & t) ⇔ (t & P) ⇔ P
+--                 (P & f) ⇔ (f & P) ⇔ f
+--                 (P ∨ t) ⇔ (t ∨ P) ⇔ t
+--                 (P ∨ f) ⇔ (f ∨ P) ⇔ P
+
+-- Exericise 11:
+-- Write a function, isCNF, to test if a Prop is in conjunction normal form.
+isCNF :: Prop -> Bool
+isCNF T          =  True
+isCNF F          =  True
+isCNF (p :&: q)
+    | or [p == T, p == F, q == T, q == F] = False
+    | otherwise                       = and [isCNF p, isCNF q]
+isCNF p          = clause p
+    where clause (p :|: q)  =  clause p && clause q
+          clause p          =  literal p
+              where literal (Not (Var _))  =  True
+                    literal (Var _)        =  True
+                    literal _              =  False
+
+
+-- A common way of expressing formulas in conjunctive normal form is as a list
+-- of lists, where the inner lists represent the clauses. Thus:
+--                 ((A ∨ B) & ((C ∨ D) ∨ E)) & G  ⇔  [[A,B],[C,D,E],[G]]
+
+
+-- Exercise 13:
+-- Write a function, listsToCNF, to translate a list of lists of Props (which
+-- you may assume to be variables or negated varaibles) to a Prop in conjunctive
+-- normal form.
+listsToCNF :: [[Prop]] -> Prop
+listsToCNF pss
+    |  null pss      =  T
+    |  any null pss  =  F
+    |  otherwise     =  foldl1 (:&:) . map (foldl1 (:|:)) $ pss
+
+
+-- Exercise 14:
+-- Write a function, listsFromCNF, to write a formula in conjunctive normal form
+-- as a list of lists
+listsFromCNF :: Prop -> [[Prop]]
+listsFromCNF p
+    |  not $ isCNF p  =  error "listsFromCNF: proposition not in conjunctive normal form"
+    |  otherwise    =  decompose p
+    where decompose (p :&: q)  =  decompose p ++ decompose q
+          decompose p          =  [literals p]
+          literals  (p :|: q)  =  literals p ++ literals q
+          literals  p          =  [p]
