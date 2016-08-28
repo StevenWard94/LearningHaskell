@@ -21,7 +21,7 @@
 module Edinburgh.Tutorial6.Main where
 
 import Control.Monad ( ap )
-import Data.List ( intercalate )
+import Data.List ( intercalate, nub )
 import Data.Maybe ( fromJust, isJust )
 
 import System.Random
@@ -163,3 +163,19 @@ listToMaybe xs = Just $ head xs
 --by 'Just' constructors (all 'Nothing' elements should be stripped).
 catMaybes :: [Maybe a] -> [a]
 catMaybes = map fromJust . filter isJust
+
+-- \end
+
+-- Exercise 3    \begin
+----------------
+-- Using the functions from the previous exercise, write a function, getItems,
+-- that returns a list of corresponding items from a given list of barcodes.
+-- Test your code for errors using the expression:
+--     *Main> getItems ["0001", "9780201342758", "0003"] testDB
+-- It should return a singleton list of just the Item value for the textbook.
+getItems :: [Barcode] -> Catalog -> [Item]
+getItems = ((nub . catMaybes) .) . flip (map . flip get)
+
+--    \end
+-- \end
+
