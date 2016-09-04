@@ -3,7 +3,9 @@ module Problems1to10 where
 import Control.Applicative ( (<*>) )
 import Control.Arrow ( (&&&) )
 import Control.Monad ( liftM2 )
-import Data.List ( foldl' )
+import Data.List ( foldl', group )
+
+import GHC.Exts ( build )
 
 -- Problem 1: find the last element of a list \begin
 myLast :: [a] -> a
@@ -177,3 +179,99 @@ isPalindrome5 ls  =  fs_prt == reverse sn_prt
 isPalindrome6     =  (uncurry (==) . (id &&& reverse))
 
 -- \end
+
+-- Problem 7: flatten a nested list structure \begin
+-- (details) Transform a list, possibly holding lists as elements, into a "flat"
+-- list by replacing each list with its elements, recursively.
+--
+-- Requires definition of a new data type b/c lists are homogenous in Haskell.
+data NestedList a = Elem a | List [NestedList a]
+
+myFlatten :: NestedList a -> [a]
+myFlatten (Elem x ) = [x]
+myFlatten (List xs) = foldr (++) [] $ map myFlatten xs
+
+-- alternatives...
+flatten1, flatten2, flatten3, flatten4, flatten5, flatten6 :: NestedList a -> [a]
+
+flatten1 (Elem x) = [x]
+flatten1 (List l) = concatMap flatten1 l
+
+-- ...or without concatMap...
+flatten2 (Elem a     ) = [a]
+flatten2 (List (x:xs)) = flatten2 x ++ flatten2 (List xs)
+flatten2 (List [])     = []
+
+-- ...or using things that act just like concatMap...
+flatten3 (Elem x) = return x
+flatten3 (List l) = flatten3 =<< l
+
+flatten4 (Elem x) = [x]
+flatten4 (List l) = foldMap flatten4 l
+
+flatten5 a = flt' a []
+    where flt' (Elem x     ) xs = x:xs
+          flt' (List (l:ls)) xs = flt' l $ flt' (List ls) xs
+          flt' (List []    ) xs = xs
+
+-- ...or with an accumulator function...
+flatten6 = reverse . rec []
+    where
+        rec acc (List [])     = acc
+        rec acc (Elem x)      = x:acc
+        rec acc (List (x:xs)) = rec (rec acc x) (List xs)
+-- \end
+
+-- Problem 8: eliminate consecutive duplicates of list elements \begin
+-- (details) If a list contains repeated elements, they should be replaced by
+-- a single copy of the element. The order of elements should not be changed.
+-- Example:
+--     *Main> compress "aaaabccaadeeee"
+--     "abcade"
+
+myCompress :: (Eq a) => [a] -> [a]
+myCompress l = foldr (\a b -> if a == head b then b else a:b) [last l] l
+
+myCompress' :: (Eq a) => [a] -> [a]
+myCompress' = map head . group
+
+-- alternatives...
+compress1 (x:ys@(y:_))
+  | x == y    = compress1 ys
+  | otherwise = x : compress1 ys
+compress1 ys  = ys
+
+compress2 xs = foldr f (const []) xs Nothing
+    where
+        f x r a@(Just q) | x == q = r a
+        f x r _ = x : r (Just x)
+
+compress3 :: (Eq a) => [a] -> [a]
+compress3 = foldr skipDubs []
+    where skipDubs x [] = [x]
+          skipDubs x acc
+            | x == head acc = acc
+            | otherwise    = x : acc
+
+compress4 list = compress_acc list []
+    where
+        compress_acc []  acc = acc
+        compress_acc [x] acc = (acc ++ [x])
+        compress_acc (x:xs) acc
+          | x == head xs      = compress_acc xs acc
+          | otherwise        = compress_acc xs (acc ++ [x])
+
+compress5 []     = []
+compress5 (x:xs) = x : (compress5 $ dropWhile (== x) xs)
+
+compress6 x = reverse $ foldl' (\a b -> if head a == b then a else b:a) [head x] x
+
+{-# INLINE compress7 #-}
+compress7 :: (Eq a) => [a] -> [a]
+compress7 xs = build (\c n ->
+    let
+      f x r a@(Just q) | x == q = r a
+      f x r _ = x `c` r (Just x)
+    in
+      foldr f (const n) xs Nothing
+                     )
