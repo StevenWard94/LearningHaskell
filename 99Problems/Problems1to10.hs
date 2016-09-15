@@ -343,3 +343,73 @@ pack8 (y:ys) = reverse $ impl ys [[y]]
           | otherwise  = impl xs $ [x]:p
 
 -- \end
+
+-- Problem 10: run-length encoding of a list \begin
+-- (details) Use the result of Problem 9 to implement the so-called "run-length
+-- encoding" data compression method. Consecutive duplicates of elements are
+-- encoded as lists, (N E), where N is the number of duplicates of element E.
+-- Example:
+--     *Main> encode "aaaabccaadeeee"
+--     [(4,'a'), (1,'b'), (2,'c'), (2,'a'), (1,'d'), (4,'e')]
+myEncode :: (Eq a) => [a] -> [(Int,a)]
+myEncode = map (\xs -> (length xs, head xs)) . group
+
+myEncode' :: (Eq a) => [a] -> [(Int,a)]
+myEncode' []     = []
+myEncode' (x:xs) = (length $ x : takeWhile (==x) xs, x)
+                    : myEncode' (dropWhile (==x) xs)
+
+-- alternatives...
+-- using the '&&&' arrow operator for tuples
+encode1 xs = map (length &&& head) $ group xs
+
+-- slightly more verbose w/ applicative combinators instead of '&&&'
+encode2 :: Eq a => [a] -> [(Int,a)]
+encode2 = map ((,) <$> length <*> head) . myPack
+
+-- with 'foldr'
+encode3 xs = (enc . myPack) xs
+    where enc = foldr (\x acc -> (length x, head x) : acc) []
+
+-- without higher-order functions
+encode4 []     = []
+encode4 (x:xs) = enc 1 x xs
+    where
+        enc n x []    = [(n,x)]
+        enc n x (y:ys)
+          | x == y     = enc (n+1) x ys
+          | otherwise = (n,x) : enc 1 y ys
+
+-- with 'zip' and 'group'
+encode5 xs =
+    let l = group xs
+        h = map head l
+     in zip (map length l) h
+
+-- or, ignoring the rule that we should use the result of Problem 9
+encode6 xs = foldr f final xs Nothing
+    where
+      f x r (Just a@(i,q))
+        | x == q         = r (Just (i + 1, q))
+        | otherwise     = a : r (Just (1, x))
+      f x r Nothing           = r (Just (1, x))
+
+      final (Just a@(i,q)) = [a]
+      final Nothing           = []
+
+-- ...which can become a good transformer for list fusion like so
+{-# INLINE encode #-}
+encode :: (Eq a) => [a] -> [(Int,a)]
+encode xs = build (\c n ->
+    let
+      f x r (Just a@(i,q))  | x == q     = r (Just (i + 1, q))
+                         | otherwise = a `c` r (Just (1, x))
+      f x r Nothing = r (Just (1, x))
+
+      final (Just a@(i,q)) = a `c` n
+      final Nothing           = n
+
+    in
+      foldr f final xs Nothing)
+
+-- \end
