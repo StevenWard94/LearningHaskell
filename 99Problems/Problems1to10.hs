@@ -1,3 +1,9 @@
+-- |
+-- Module:        Problems1to10
+-- Author:        Steven Ward <stevenward94@gmail.com>
+-- URL:           https://github.com/StevenWard94/LearningHaskell.d
+-- Last Change:   2016 Sep 15
+--
 module Problems1to10 where
 
 import Control.Applicative ( (<*>) )
